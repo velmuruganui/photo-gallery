@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Image, Upload, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ImageUpload from '@/components/ImageUpload';
@@ -7,12 +7,72 @@ import ImagePreview from '@/components/ImagePreview';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
 const Index = () => {
-  const [images, setImages] = useState<string[]>([]);
   const [selectedImageIndex, setSelectedImageIndex] = useState<number | null>(null);
   const [showUploadDialog, setShowUploadDialog] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const { data: images = [], isLoading } = useQuery({
+    queryKey: ['images'],
+    queryFn: async () => {
+      const { data: images, error } = await supabase
+        .from('images')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      const imageUrls = await Promise.all(
+        images.map(async (image) => {
+          const { data } = supabase.storage
+            .from('gallery')
+            .getPublicUrl(image.storage_path);
+          return data.publicUrl;
+        })
+      );
+
+      return imageUrls;
+    },
+  });
+
+  const uploadMutation = useMutation({
+    mutationFn: async (files: File[]) => {
+      const uploadedImages = await Promise.all(
+        files.map(async (file) => {
+          const fileExt = file.name.split('.').pop();
+          const filePath = `${crypto.randomUUID()}.${fileExt}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from('gallery')
+            .upload(filePath, file);
+
+          if (uploadError) throw uploadError;
+
+          const { error: dbError } = await supabase.from('images').insert({
+            storage_path: filePath,
+            user_id: (await supabase.auth.getUser()).data.user?.id,
+          });
+
+          if (dbError) throw dbError;
+
+          const { data } = supabase.storage.from('gallery').getPublicUrl(filePath);
+          return data.publicUrl;
+        })
+      );
+
+      return uploadedImages;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['images'] });
+      setShowUploadDialog(false);
+    },
+    onError: (error) => {
+      toast.error('Error uploading images: ' + error.message);
+    },
+  });
 
   const handleLogout = async () => {
     try {
@@ -25,9 +85,7 @@ const Index = () => {
   };
 
   const handleUpload = (files: File[]) => {
-    const newImages = files.map(file => URL.createObjectURL(file));
-    setImages(prev => [...prev, ...newImages]);
-    setShowUploadDialog(false);
+    uploadMutation.mutate(files);
   };
 
   const handleImageClick = (index: number) => {
@@ -45,6 +103,10 @@ const Index = () => {
   const handleNext = () => {
     setSelectedImageIndex(prev => prev !== null ? Math.min(images.length - 1, prev + 1) : null);
   };
+
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
