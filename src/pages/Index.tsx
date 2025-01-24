@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Image, Upload, LogOut } from 'lucide-react';
+import React, { useState } from 'react';
+import { Image, Upload, LogOut, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ImageUpload from '@/components/ImageUpload';
 import ImageGrid from '@/components/ImageGrid';
@@ -15,7 +15,7 @@ const Index = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const { data: images = [], isLoading } = useQuery({
+  const { data: imagesData = [], isLoading } = useQuery({
     queryKey: ['images'],
     queryFn: async () => {
       const { data: images, error } = await supabase
@@ -25,16 +25,44 @@ const Index = () => {
 
       if (error) throw error;
 
-      const imageUrls = await Promise.all(
+      return Promise.all(
         images.map(async (image) => {
           const { data } = supabase.storage
             .from('gallery')
             .getPublicUrl(image.storage_path);
-          return data.publicUrl;
+          return {
+            id: image.id,
+            url: data.publicUrl,
+            storagePath: image.storage_path
+          };
         })
       );
+    },
+  });
 
-      return imageUrls;
+  const deleteMutation = useMutation({
+    mutationFn: async ({ storagePath, id }: { storagePath: string, id: string }) => {
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('gallery')
+        .remove([storagePath]);
+      
+      if (storageError) throw storageError;
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('images')
+        .delete()
+        .eq('id', id);
+
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['images'] });
+      toast.success('Image deleted successfully');
+    },
+    onError: (error) => {
+      toast.error('Error deleting image: ' + error.message);
     },
   });
 
@@ -68,6 +96,7 @@ const Index = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['images'] });
       setShowUploadDialog(false);
+      toast.success('Images uploaded successfully');
     },
     onError: (error) => {
       toast.error('Error uploading images: ' + error.message);
@@ -101,7 +130,17 @@ const Index = () => {
   };
 
   const handleNext = () => {
-    setSelectedImageIndex(prev => prev !== null ? Math.min(images.length - 1, prev + 1) : null);
+    setSelectedImageIndex(prev => prev !== null ? Math.min(imagesData.length - 1, prev + 1) : null);
+  };
+
+  const handleDelete = async (index: number) => {
+    const image = imagesData[index];
+    if (!image) return;
+    
+    deleteMutation.mutate({
+      storagePath: image.storagePath,
+      id: image.id
+    });
   };
 
   if (isLoading) {
@@ -144,18 +183,19 @@ const Index = () => {
         )}
 
         <ImageGrid 
-          images={images} 
+          images={imagesData.map(img => img.url)}
           onImageClick={handleImageClick}
+          onDelete={handleDelete}
         />
 
         <ImagePreview
           isOpen={selectedImageIndex !== null}
           onClose={handleClose}
-          currentImage={selectedImageIndex !== null ? images[selectedImageIndex] : null}
+          currentImage={selectedImageIndex !== null ? imagesData[selectedImageIndex]?.url : null}
           onPrevious={handlePrevious}
           onNext={handleNext}
           hasPrevious={selectedImageIndex !== null && selectedImageIndex > 0}
-          hasNext={selectedImageIndex !== null && selectedImageIndex < images.length - 1}
+          hasNext={selectedImageIndex !== null && selectedImageIndex < imagesData.length - 1}
         />
       </main>
     </div>
