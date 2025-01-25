@@ -35,7 +35,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
         
         {hasPrevious && (
           <button
-            onClick={onPrevious}
+            onClick={(e) => {
+              e.stopPropagation();
+              onPrevious();
+            }}
             className="absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
           >
             <ChevronLeft className="h-6 w-6 text-white" />
@@ -44,7 +47,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
         
         {hasNext && (
           <button
-            onClick={onNext}
+            onClick={(e) => {
+              e.stopPropagation();
+              onNext();
+            }}
             className="absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
           >
             <ChevronRight className="h-6 w-6 text-white" />

@@ -18,12 +18,12 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, onImageClick, onDelete })
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3 }}
           className="relative aspect-square group cursor-pointer overflow-hidden rounded-lg"
+          onClick={() => onImageClick(index)}
         >
           <img
             src={image}
             alt={`Gallery image ${index + 1}`}
             className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-            onClick={() => onImageClick(index)}
           />
           <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
           <button
