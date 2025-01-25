@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Upload, LogOut, Trash2 } from 'lucide-react';
+import { Image, Upload, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import ImageUpload from '@/components/ImageUpload';
 import ImageGrid from '@/components/ImageGrid';
@@ -42,14 +42,12 @@ const Index = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async ({ storagePath, id }: { storagePath: string, id: string }) => {
-      // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('gallery')
         .remove([storagePath]);
       
       if (storageError) throw storageError;
 
-      // Delete from database
       const { error: dbError } = await supabase
         .from('images')
         .delete()
