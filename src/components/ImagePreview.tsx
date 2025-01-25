@@ -24,7 +24,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   if (!currentImage) return null;
 
   return (
-    <Dialog open={isOpen} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[90vw] max-h-[90vh] p-0 bg-black/90">
         <button
           onClick={onClose}
