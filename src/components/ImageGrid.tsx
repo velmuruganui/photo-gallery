@@ -1,9 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
+import { format } from 'date-fns';
 
 interface ImageGridProps {
-  images: string[];
+  images: {
+    url: string;
+    createdAt: string;
+  }[];
   onImageClick: (index: number) => void;
   onDelete: (index: number) => void;
 }
@@ -21,11 +25,14 @@ const ImageGrid: React.FC<ImageGridProps> = ({ images, onImageClick, onDelete })
           onClick={() => onImageClick(index)}
         >
           <img
-            src={image}
+            src={image.url}
             alt={`Gallery image ${index + 1}`}
             className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-black opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+          <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white p-2 text-sm">
+            {format(new Date(image.createdAt), 'MMMM yyyy')}
+          </div>
           <button
             onClick={(e) => {
               e.stopPropagation();

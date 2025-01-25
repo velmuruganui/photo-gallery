@@ -6,6 +6,7 @@ export interface ImageData {
   id: string;
   url: string;
   storagePath: string;
+  createdAt: string;
 }
 
 export const useImageOperations = () => {
@@ -29,7 +30,8 @@ export const useImageOperations = () => {
           return {
             id: image.id,
             url: data.publicUrl,
-            storagePath: image.storage_path
+            storagePath: image.storage_path,
+            createdAt: image.created_at
           };
         })
       );

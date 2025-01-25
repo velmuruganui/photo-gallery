@@ -45,6 +45,11 @@ const Index = () => {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
+  const formattedImages = imagesData.map(img => ({
+    url: img.url,
+    createdAt: img.createdAt
+  }));
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header onUploadClick={() => setShowUploadDialog(true)} />
@@ -57,7 +62,7 @@ const Index = () => {
         )}
 
         <ImageGrid 
-          images={imagesData.map(img => img.url)}
+          images={formattedImages}
           onImageClick={handleImageClick}
           onDelete={handleDelete}
         />
